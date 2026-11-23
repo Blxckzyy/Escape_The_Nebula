@@ -34,6 +34,8 @@ def start_game(name):
     st.session_state.result_message = ""
     st.session_state.result_value = ""
     st.session_state.action_complete = False
+    # Tracks rooms the player has already explored so their buttons can be disabled.
+    st.session_state.visited_rooms = []
 
 # Roll and return a random number from 1 through 6.
 def roll_d6():
@@ -100,8 +102,9 @@ def generate_story(room, action, outcome, fallback_message):
 
     inventory_text = ", ".join(st.session_state.inventory)
     prompt = f"""
-You are the storyteller for a dark fantasy
-adventure game called Escape the Castle.
+
+    
+You are the storyteller for a sci-fi text based escape the nebula game.
  
 Player: {st.session_state.player_name}
 Room: {room}
@@ -195,3 +198,96 @@ def show_result():
 def show_continue_button(text = "Continue"):
     if st.button(text):
         continue_game()
+
+if not st.session_state.game_started:
+    st.subheader("Create your character")
+    playerName = st.text_input("What is your name? ")
+
+    if st.button("Start your adventure!"):
+        if playerName.strip():
+            start_game(playerName)
+            st.rerun()
+        else:
+            st.warning("Enter your name first before starting.")
+else:
+    show_player_info()
+    room = get_current_room()
+
+if st.session_state.game_started:
+    # ===========================================
+    # Room 1 - Cryo Bay
+    # ===========================================
+    if room == "cryo_bay":
+        show_room("🧊 The Cryo Bay", "You wake up dazed to a collapsed cryo bay lay around you, all of your crew is dead. You need to figure out what to do.")
+        if not st.session_state.action_complete:
+            if st.button("🚪 Pry the blast door open"):
+                outcome = "The player prys open the door and finds themselves in the central deck"
+                story = generate_story(
+                    "The Cryo Bay", "leave the Cryo Bay", outcome,
+                    "You slip through the blast door and enter the Central Deck."
+                )
+                set_result("success", story)
+        else:
+            show_result()
+            show_continue_button()
+    # ===========================================
+    # Room 2 - Central Deck
+    # ===========================================
+    elif room == "central_deck":
+        show_room("🛰️ The Central Deck", "Choose a route to explore.")
+
+        # Disable each destination button if that room has already been visited.
+        engineering_disabled = "engeneering_bay" in st.session_state.visited_rooms
+        reactor_disabled = "reactor_core" in st.session_state.visited_rooms
+        escape_pod_disabled = "escape_pod" in st.session_state.visited_rooms
+
+        # Mark Engineering Bay as visited and move the player to that room.
+        if st.button("⚙️ Engineering Bay", disabled=engineering_disabled):
+            st.session_state.visited_rooms.append("engeneering_bay")
+            st.session_state.room_number = 2
+            st.rerun()
+
+        # Mark Reactor Core as visited and move the player to that room.
+        if st.button("☢️ Reactor Core", disabled=reactor_disabled):
+            st.session_state.visited_rooms.append("reactor_core")
+            st.session_state.room_number = 3
+            st.rerun()
+
+        # Mark Escape Pod as visited and move the player to that room.
+        if st.button("🚀 Escape Pod", disabled=escape_pod_disabled):
+            st.session_state.visited_rooms.append("escape_pod")
+            st.session_state.room_number = 4
+            st.rerun()
+
+    # ===========================================
+    # Room 3 - Engineering Bay
+    # ===========================================
+    elif room == "engeneering_bay":
+        show_room("⚙️ Engineering Bay", "The damaged engineering systems hum around you.")
+
+        # Set the room number to Central Deck and reopen the Central Deck screen.
+        if st.button("⬅️ Return to Central Deck"):
+            st.session_state.room_number = 1
+            st.rerun()
+
+    # ===========================================
+    # Room 4 - Reactor Core
+    # ===========================================
+    elif room == "reactor_core":
+        show_room("☢️ Reactor Core", "Warning lights flash across the unstable reactor core.")
+
+        # Set the room number to Central Deck and reopen the Central Deck screen.
+        if st.button("⬅️ Return to Central Deck"):
+            st.session_state.room_number = 1
+            st.rerun()
+
+    # ===========================================
+    # Room 5 - Escape Pod
+    # ===========================================
+    elif room == "escape_pod":
+        show_room("🚀 Escape Pod", "The escape pod waits silently beyond the deck.")
+
+        # Set the room number to Central Deck and reopen the Central Deck screen.
+        if st.button("⬅️ Return to Central Deck"):
+            st.session_state.room_number = 1
+            st.rerun()
