@@ -236,7 +236,7 @@ if st.session_state.game_started:
     elif room == "central_deck":
         show_room("🛰️ The Central Deck", "Choose a route to explore.")
 
-        # Disable each destination button if that room has already been visited.
+        # Disable each room button if that room has already been visited.
         engineering_disabled = "engeneering_bay" in st.session_state.visited_rooms
         reactor_disabled = "reactor_core" in st.session_state.visited_rooms
         escape_pod_disabled = "escape_pod" in st.session_state.visited_rooms
@@ -265,6 +265,47 @@ if st.session_state.game_started:
     elif room == "engeneering_bay":
         show_room("⚙️ Engineering Bay", "The damaged engineering systems hum around you.")
 
+        if not st.session_state.action_complete:
+            left, right = st.columns(2)
+            with left:
+                if st.button("🔥🔦Investigate the cutting torch"):
+                    roll = roll_d20()
+                    if roll == 1:
+                        take_damage(5)
+                        if st.session_state.health <= 0:
+                            show_room("💀 Game Over", "The cutting torch went rouge and cut a hole in the side of the ship, exposing you to the vaccum of space.")
+                            st.error("You were unable to Escape the Nebula")
+                            if st.button("🔄 Try Again"):
+                                restart_game()
+                            st.stop()
+                        outcome = "The player was badly damaged by the cutting torch."
+                        story = generate_story(
+                            "The Engineering Bay", "control the rogue cutting torch", outcome,
+                            "The cutting torch damages you before you regain control."
+                        )
+                        set_result("damage", story, 5)
+                    elif roll >= 2 and roll <= 8:
+                        take_damage(2)
+                        outcome = "The player got damaged by the cutting torch while trying to controll it."
+                        story = generate_story(
+                            "The Engineering Bay", "control the rogue cutting torch", outcome,
+                            "You successfully control the torch, but not before being injured."
+                        )
+                        st.session_state.inventory.append("Cutting Torch")
+                        set_result("damage", story, 2)
+                    else:
+                        outcome = "The player safely controls the cutting torch."
+                        story = generate_story(
+                            "The Engineering Bay",
+                            "Control the rogue cutting torch",
+                            outcome,
+                            "You safely regain control of the cutting torch."
+                        )
+                        st.session_state.inventory.append("Cutting Torch")
+                        set_result("success", story)
+        else:
+            show_result()
+
         # Set the room number to Central Deck and reopen the Central Deck screen.
         if st.button("⬅️ Return to Central Deck"):
             st.session_state.room_number = 1
@@ -286,8 +327,3 @@ if st.session_state.game_started:
     # ===========================================
     elif room == "escape_pod":
         show_room("🚀 Escape Pod", "The escape pod waits silently beyond the deck.")
-
-        # Set the room number to Central Deck and reopen the Central Deck screen.
-        if st.button("⬅️ Return to Central Deck"):
-            st.session_state.room_number = 1
-            st.rerun()
