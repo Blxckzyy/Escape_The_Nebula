@@ -271,6 +271,7 @@ if st.session_state.game_started:
     # ===========================================
     elif room == "engeneering_bay":
         show_room("⚙️ Engineering Bay", "The damaged engineering systems hum around you.")
+        st.write("You see a rougue cutting torch and a Nano Kit (Gives +2 to health)")
 
         left, right = st.columns(2)
         with left:
