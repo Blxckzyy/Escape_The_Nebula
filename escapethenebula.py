@@ -349,6 +349,7 @@ if st.session_state.game_started:
             show_result()
             if st.session_state.result_type == "success":
                 st.session_state.reactor_cleared = True
+                show_continue_button("Continue to the Office")
             elif st.session_state.health <= 0:
                 show_room("💀 Game Over", "The reactor's molten iron leaves you unable to continue.")
                 st.error("You were unable to Escape the Nebula")
