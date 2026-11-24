@@ -46,6 +46,10 @@ def roll_d6():
 def roll_d20():
     return random.randint(1,20)
 
+# Roll and return a random number from 1 through 1000.
+def roll_d1k():
+    return random.randint(1,1000)
+
 # Display the current room's title and description.
 def show_room(title, description):
     st.header(title)
@@ -54,6 +58,8 @@ def show_room(title, description):
 # Restarts the game by refreshing the page
 def restart_game():
     st.session_state.clear()
+    st.session_state.game_started = False
+    st.session_state.room_number = 0
     st.rerun()
 
 # Return the room key for the player's current room.
@@ -279,7 +285,7 @@ if st.session_state.game_started:
                         st.error("You were unable to Escape the Nebula")
                         if st.button("🔄 Try Again"):
                             restart_game()
-                        st.stop()
+                            st.stop()
                 elif roll >= 2 and roll <= 8:
                     take_damage(2)
                     outcome = "The player got damaged by the cutting torch while trying to controll it."
@@ -324,10 +330,44 @@ if st.session_state.game_started:
     # ===========================================
     elif room == "reactor_core":
         show_room("☢️ Reactor Core", "Warning lights flash across the unstable reactor core.")
+        
+        if not st.session_state.action_complete:
+            chance_encounter(
+                "🏃‍♂️ Run through the reactor core",
+                "Reactor Core",
+                "cross the molten iron passage",
+                4,
+                "The player crosses the molten iron safely and reaches the far end.",
+                "You cross the molten iron passage safely and reach the far end.",
+                "The player trips and catches themselves on the molten iron, taking damage.",
+                "You stumble and catch yourself on the molten iron, suffering a burn.",
+                2,
+            )
+        else:
+            show_result()
+            if st.session_state.result_type == "success":
+                st.write("You have found a keycard and decided it could be useful.")
+                add_item("Keycard")
+            elif st.session_state.health <= 0:
+                show_room("💀 Game Over", "The reactor's molten iron leaves you unable to continue.")
+                st.error("You were unable to Escape the Nebula")
+                if st.button("🔄 Try Again"):
+                    restart_game()
+                    st.stop()
+            elif st.button("🔁 Try crossing again"):
+                st.session_state.action_complete = False
+                st.session_state.result_type = ""
+                st.session_state.result_message = ""
+                st.session_state.result_value = ""
+                st.rerun()
 
         # Set the room number to Central Deck and reopen the Central Deck screen.
         if st.button("⬅️ Return to Central Deck"):
             st.session_state.room_number = 1
+            st.session_state.action_complete = False
+            st.session_state.result_type = ""
+            st.session_state.result_message = ""
+            st.session_state.result_value = ""
             st.rerun()
 
     # ===========================================
@@ -335,3 +375,49 @@ if st.session_state.game_started:
     # ===========================================
     elif room == "escape_pod":
         show_room("🚀 Escape Pod", "The escape pod waits silently beyond the deck.")
+        has_keycard = "Keycard" in st.session_state.inventory
+        roll_button_clicked = False
+
+        if has_keycard:
+            st.info("💳You are carrying the Keycard for the escape pods.")
+            if not st.session_state.action_complete:
+                if st.button("🔑 Use the Keycard and escape"):
+                    outcome = "The player unlocks the escape pod with the Keycard and escapes the Nebula."
+                    story = generate_story(
+                        "The Escape Pod", "unlock and launch the pod with the Keycard", outcome,
+                        "You swipe the Keycard, unlock the pod, and escape the Nebula."
+                    )
+                    set_result("success", story)
+                roll_button_clicked = st.button("Risk trying to enter the 3 digit passcode?")
+        else:
+            st.warning("You don't have the Keycard, so you must try to guess the 3 digit passcode.")
+            if not st.session_state.action_complete:
+                roll_button_clicked = st.button("Guess the passcode")
+
+        if roll_button_clicked:
+            roll = roll_d1k()
+            if roll == 1:
+                outcome = "The player launches the escape pod and escapes the Nebula."
+                story = generate_story(
+                    "The Escape Pod", "launch the pod without relying on the Keycard", outcome,
+                    "Against impossible odds, the pod launches and you escape the Nebula."
+                )
+                set_result("success", story)
+            elif roll != 1:
+                set_result(
+                    "game_over",
+                    "You try a three-digit code, but it's incorrect. The escape pod locks you out."
+                )
+
+        if st.session_state.action_complete:
+            if st.session_state.result_type == "success":
+                show_result()
+                st.balloons()
+                if st.button("🔄 Restart Game"):
+                    restart_game()
+            elif st.session_state.result_type == "game_over":
+                show_room("💀 Game Over", st.session_state.result_message)
+                st.error("You were unable to Escape the Nebula.")
+                if st.button("🔄 Restart Game"):
+                    restart_game()
+        
