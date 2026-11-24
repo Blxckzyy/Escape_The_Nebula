@@ -34,8 +34,9 @@ def start_game(name):
     st.session_state.result_message = ""
     st.session_state.result_value = ""
     st.session_state.action_complete = False
-    # Tracks rooms the player has already explored so their buttons can be disabled.
-    st.session_state.visited_rooms = []
+    st.session_state.visited_rooms = [] # Tracks rooms the player has already explored so their buttons can be disabled.
+    st.session_state.torch_investigated = False
+    st.session_state.nano_used = False
 
 # Roll and return a random number from 1 through 6.
 def roll_d6():
@@ -265,46 +266,53 @@ if st.session_state.game_started:
     elif room == "engeneering_bay":
         show_room("⚙️ Engineering Bay", "The damaged engineering systems hum around you.")
 
-        if not st.session_state.action_complete:
-            left, right = st.columns(2)
-            with left:
-                if st.button("🔥🔦Investigate the cutting torch"):
-                    roll = roll_d20()
-                    if roll == 1:
-                        take_damage(5)
-                        if st.session_state.health <= 0:
-                            show_room("💀 Game Over", "The cutting torch went rouge and cut a hole in the side of the ship, exposing you to the vaccum of space.")
-                            st.error("You were unable to Escape the Nebula")
-                            if st.button("🔄 Try Again"):
-                                restart_game()
-                            st.stop()
-                        outcome = "The player was badly damaged by the cutting torch."
-                        story = generate_story(
-                            "The Engineering Bay", "control the rogue cutting torch", outcome,
-                            "The cutting torch damages you before you regain control."
-                        )
-                        set_result("damage", story, 5)
-                    elif roll >= 2 and roll <= 8:
-                        take_damage(2)
-                        outcome = "The player got damaged by the cutting torch while trying to controll it."
-                        story = generate_story(
-                            "The Engineering Bay", "control the rogue cutting torch", outcome,
-                            "You successfully control the torch, but not before being injured."
-                        )
-                        st.session_state.inventory.append("Cutting Torch")
-                        set_result("damage", story, 2)
-                    else:
-                        outcome = "The player safely controls the cutting torch."
-                        story = generate_story(
-                            "The Engineering Bay",
-                            "Control the rogue cutting torch",
-                            outcome,
-                            "You safely regain control of the cutting torch."
-                        )
-                        st.session_state.inventory.append("Cutting Torch")
-                        set_result("success", story)
-        else:
-            show_result()
+        left, right = st.columns(2)
+        with left:
+            if st.button(
+                "🔥🔦Investigate the cutting torch", disabled=st.session_state.torch_investigated):
+                st.session_state.torch_investigated = True
+                roll = roll_d20()
+                if roll == 1:
+                    take_damage(5)
+                    if st.session_state.health <= 0:
+                        show_room("💀 Game Over", "The cutting torch went rouge and cut a hole in the side of the ship, exposing you to the vaccum of space.")
+                        st.error("You were unable to Escape the Nebula")
+                        if st.button("🔄 Try Again"):
+                            restart_game()
+                        st.stop()
+                elif roll >= 2 and roll <= 8:
+                    take_damage(2)
+                    outcome = "The player got damaged by the cutting torch while trying to controll it."
+                    story = generate_story(
+                        "The Engineering Bay", "control the rogue cutting torch", outcome,
+                        "You successfully control the torch, but not before being injured."
+                    )
+                    add_item("Cutting Torch")
+                    st.error("💔 DAMAGE: You lose 2 health.")
+                    st.write(story)
+                else:
+                    outcome = "The player safely controls the cutting torch."
+                    story = generate_story(
+                        "The Engineering Bay",
+                        "Control the rogue cutting torch",
+                        outcome,
+                        "You safely regain control of the cutting torch."
+                    )
+                    add_item("Cutting Torch")
+                    st.success("✅ Success!")
+                    st.write(story)
+        with right:
+            if st.button(
+                "❤️‍🩹Use the Nano Kit",
+                disabled=st.session_state.nano_used
+            ):
+                st.session_state.nano_used = True
+                healed = heal_player(2)
+                if healed > 0:
+                    st.success(f"💚 HEALED: You recover {healed} health.")
+                    st.write("You successfully used the Nano Kit to repair your damaged armour and heal your wounds.")
+                else:
+                    st.info("There are no damages to your armour and you have no injuries. This will have no effect.")
 
         # Set the room number to Central Deck and reopen the Central Deck screen.
         if st.button("⬅️ Return to Central Deck"):
