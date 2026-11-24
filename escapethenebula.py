@@ -28,8 +28,9 @@ def start_game(name):
     st.session_state.health = 5
     st.session_state.max_health = 5
     st.session_state.inventory = []
-    st.session_state.rooms = ["cryo_bay", "central_deck", "engeneering_bay", "reactor_core", "escape_pod"]
+    st.session_state.rooms = ["cryo_bay", "central_deck", "engeneering_bay", "reactor_core", "office", "escape_pod"]
     st.session_state.room_number = 0
+    st.session_state.reactor_cleared = False
     st.session_state.result_type= ""
     st.session_state.result_message = ""
     st.session_state.result_value = ""
@@ -263,7 +264,7 @@ if st.session_state.game_started:
         # Mark Escape Pod as visited and move the player to that room.
         if st.button("🚀 Escape Pod", disabled=escape_pod_disabled):
             st.session_state.visited_rooms.append("escape_pod")
-            st.session_state.room_number = 4
+            st.session_state.room_number = 5
             st.rerun()
 
     # ===========================================
@@ -347,8 +348,7 @@ if st.session_state.game_started:
         else:
             show_result()
             if st.session_state.result_type == "success":
-                st.write("You have found a keycard and decided it could be useful.")
-                add_item("Keycard")
+                st.session_state.reactor_cleared = True
             elif st.session_state.health <= 0:
                 show_room("💀 Game Over", "The reactor's molten iron leaves you unable to continue.")
                 st.error("You were unable to Escape the Nebula")
@@ -369,6 +369,24 @@ if st.session_state.game_started:
             st.session_state.result_type = ""
             st.session_state.result_message = ""
             st.session_state.result_value = ""
+            st.rerun()
+
+    # ===========================================
+    # Office
+    # ===========================================
+    elif room == "office":
+        show_room("🗄️ The Office", "A locked keycard cabinet is bolted to the wall.")
+        if has_item("Keycard"):
+            st.success("You already have the keycard from the cabinet.")
+        elif has_item("Cutting Torch"):
+            st.write("Use the Cutting Torch to open the cabinet and retrieve the keycard.")
+            if st.button("🔥 Cut open the keycard cabinet"):
+                add_item("Keycard")
+                st.success("You cut through the cabinet and take the Keycard.")
+        else:
+            st.warning("You need the Cutting Torch from the Engineering Bay to open the cabinet.")
+        if st.button("⬅️ Return to Central Deck"):
+            st.session_state.room_number = 1
             st.rerun()
 
     # ===========================================
